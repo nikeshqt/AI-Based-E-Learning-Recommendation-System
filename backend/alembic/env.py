@@ -1,0 +1,63 @@
+import sys
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config, pool
+from alembic import context
+
+from app.core.config import settings
+from app.models import Base
+
+config = context.config
+if config.config_file_name:
+    fileConfig(config.config_file_name)
+
+target_metadata = Base.metadata
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
+    url = settings.DATABASE_URL
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    url = settings.DATABASE_URL
+    try:
+        import socket
+        s = socket.socket()
+        s.settimeout(1)
+        if s.connect_ex((settings.POSTGRES_SERVER, settings.POSTGRES_PORT)) != 0:
+            url = "sqlite:///./elearning_recsys.db"
+        s.close()
+    except Exception:
+        pass
+
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = url
+    connectable = engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
