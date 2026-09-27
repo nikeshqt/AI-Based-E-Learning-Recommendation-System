@@ -9,7 +9,7 @@ interface SkillGapWidgetProps {
 
 export const SkillGapWidget: React.FC<SkillGapWidgetProps> = ({ onNavigateToSkillGaps }) => {
   const [topGaps, setTopGaps] = useState<SkillGapItem[]>([]);
-  const [goal, setGoal] = useState<string>('Cybersecurity Analyst');
+  const [goal, setGoal] = useState<string>('Not Set');
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {

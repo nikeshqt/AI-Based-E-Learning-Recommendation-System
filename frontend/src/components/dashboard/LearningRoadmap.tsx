@@ -37,30 +37,9 @@ export const LearningRoadmap: React.FC<LearningRoadmapProps> = ({ onNavigateToLe
     );
   }
 
-  const goal = pathData?.career_goal || 'Cybersecurity Analyst';
-  const duration = pathData?.total_duration_hours || 24;
-  const stages = pathData?.stages || [
-    {
-      stage_number: 1,
-      stage_title: 'Foundation & Prerequisites',
-      stage_name: 'Foundation',
-      description: 'Build essential prerequisite knowledge and core technical fundamentals.',
-      target_skills: ['Linux', 'Networking'],
-      estimated_duration_hours: 8,
-      status: 'AVAILABLE',
-      courses: [],
-    },
-    {
-      stage_number: 2,
-      stage_title: 'Core Domain Mastery',
-      stage_name: 'Core Skills',
-      description: 'Master primary domain competencies and hands-on operational practice.',
-      target_skills: ['Cybersecurity', 'Python'],
-      estimated_duration_hours: 10,
-      status: 'LOCKED',
-      courses: [],
-    },
-  ];
+  const goal = pathData?.career_goal || 'Not Set';
+  const duration = pathData?.total_duration_hours || 0;
+  const stages = pathData?.stages || [];
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
@@ -81,34 +60,43 @@ export const LearningRoadmap: React.FC<LearningRoadmapProps> = ({ onNavigateToLe
         </button>
       </div>
 
-      <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
-        {stages.map((stage, idx) => (
-          <div key={stage.stage_number} className="relative">
-            <div className="absolute -left-6 top-0 -translate-x-1/2 p-0.5 rounded-full bg-white border border-slate-300">
-              {idx === 0 ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <CircleDot className="w-4 h-4 text-indigo-600" />
-              )}
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-indigo-700">Stage 0{stage.stage_number}</span>
-                <span className="text-[11px] text-slate-500">{stage.estimated_duration_hours} Hours</span>
+      {stages.length === 0 ? (
+        <div className="p-6 text-center bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+          <p className="text-sm text-slate-700 font-medium">No personalized roadmap generated yet.</p>
+          <p className="text-xs text-slate-500">
+            Generate your learning path to view your stage-by-stage learning roadmap.
+          </p>
+        </div>
+      ) : (
+        <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+          {stages.map((stage, idx) => (
+            <div key={stage.stage_number} className="relative">
+              <div className="absolute -left-6 top-0 -translate-x-1/2 p-0.5 rounded-full bg-white border border-slate-300">
+                {idx === 0 ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <CircleDot className="w-4 h-4 text-indigo-600" />
+                )}
               </div>
-              <h4 className="text-sm font-bold text-slate-900 mt-0.5">{stage.stage_title}</h4>
-              <p className="text-xs text-slate-600 mt-1">{stage.description}</p>
-              <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-                {stage.target_skills.map((skill) => (
-                  <span key={skill} className="text-[10px] px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium">
-                    {skill}
-                  </span>
-                ))}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-indigo-700">Stage 0{stage.stage_number}</span>
+                  <span className="text-[11px] text-slate-500">{stage.estimated_duration_hours} Hours</span>
+                </div>
+                <h4 className="text-sm font-bold text-slate-900 mt-0.5">{stage.stage_title}</h4>
+                <p className="text-xs text-slate-600 mt-1">{stage.description}</p>
+                <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                  {stage.target_skills.map((skill) => (
+                    <span key={skill} className="text-[10px] px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 font-medium">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -12,12 +12,14 @@ import { CourseLearningPage } from './pages/CourseLearningPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AuthPage } from './pages/AuthPage';
 import { AITutorChat } from './components/ai-tutor/AITutorChat';
 import { CourseDetailModal } from './components/courses/CourseDetailModal';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import type { Course } from './types/course';
 
-export function App() {
+function AppContent() {
+  const { isAuthenticated, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [activeCourseId] = useState<string>('crs_sec_04');
@@ -45,6 +47,21 @@ export function App() {
   const handleSelectCourse = () => {
     setSelectedCourse(sampleModalCourse);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans">
+        <div className="flex items-center space-x-3 text-[#64748B]">
+          <div className="w-5 h-5 border-2 border-[#4F46E5] border-t-transparent rounded-full animate-spin"></div>
+          <span className="font-medium text-sm">Authenticating session...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -95,20 +112,25 @@ export function App() {
     }
   };
 
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto font-sans">
+      <Header activeTab={activeTab} />
+      <div className="flex-1 flex gap-6">
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <main className="flex-1 overflow-y-auto">
+          {renderActiveTab()}
+        </main>
+      </div>
+      <Footer />
+      <CourseDetailModal course={selectedCourse} onClose={() => setSelectedCourse(null)} />
+    </div>
+  );
+}
 
+export function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto font-sans">
-        <Header activeTab={activeTab} />
-        <div className="flex-1 flex gap-6">
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-          <main className="flex-1 overflow-y-auto">
-            {renderActiveTab()}
-          </main>
-        </div>
-        <Footer />
-        <CourseDetailModal course={selectedCourse} onClose={() => setSelectedCourse(null)} />
-      </div>
+      <AppContent />
     </AuthProvider>
   );
 }

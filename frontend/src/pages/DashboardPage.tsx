@@ -23,9 +23,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onNavigateToLearningPath,
 }) => {
   const [userName, setUserName] = useState<string>('Learner');
-  const [careerGoal, setCareerGoal] = useState<string>('Cybersecurity Analyst');
-  const [readinessScore, setReadinessScore] = useState<number>(62);
-  const [assessmentStatus, setAssessmentStatus] = useState<string>('Complete');
+  const [careerGoal, setCareerGoal] = useState<string>('Not Set');
+  const [readinessScore, setReadinessScore] = useState<number>(0);
+  const [assessmentStatus, setAssessmentStatus] = useState<string>('Pending');
   const [completedCount, setCompletedCount] = useState<number>(0);
   const [inProgressCount, setInProgressCount] = useState<number>(0);
   const [avgProgress, setAvgProgress] = useState<number>(0);

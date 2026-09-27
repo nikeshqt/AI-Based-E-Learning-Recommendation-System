@@ -17,9 +17,11 @@ class RecommendationEngineService:
         """Run multi-factor AI recommendation pipeline for the given user."""
         user = await user_service.get_by_id(user_id)
         if not user:
-            # Fallback demo profile if user not found
-            demo_user_res = await user_service.get_by_id("usr_98741")
-            user = demo_user_res
+            return RecommendationResponse(
+                user_id=user_id,
+                generated_at=datetime.now(timezone.utc),
+                recommendations=[],
+            )
 
         courses = await catalog_service.list_courses()
         ranked = rec_engine.rank_courses(user=user, courses=courses)
