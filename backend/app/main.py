@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
 from app.core.config import settings
 from app.core.database import init_db
+from app.services.admin_seed_service import admin_seed_service
 from app.api.router import api_router
 
 app = FastAPI(
@@ -20,13 +21,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.api.v1.endpoints import admin
+
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(admin.router, prefix="/admin", tags=["Admin Dashboard Direct"])
 
 
 @app.on_event("startup")
 async def on_startup():
-    """Ensure database tables exist on startup."""
+    """Ensure database tables exist and initial admin account is seeded on startup."""
     await init_db()
+    await admin_seed_service.seed_initial_admin_if_empty()
 
 
 @app.get("/health", tags=["Health"])

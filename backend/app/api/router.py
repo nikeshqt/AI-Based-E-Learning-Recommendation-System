@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     skill_gaps,
     course_learning,
     ai_tutor,
+    admin,
 )
 
 api_router = APIRouter()
@@ -30,6 +31,7 @@ api_router.include_router(
 api_router.include_router(course_learning.router, tags=["Course Learning"])
 api_router.include_router(ai_tutor.router, prefix="/ai-tutor", tags=["AI Tutor"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+api_router.include_router(admin.router, prefix="/admin", tags=["Admin Dashboard"])
 
 
 

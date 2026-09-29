@@ -10,6 +10,10 @@ export interface UserProfile {
   user_id: string;
   full_name: string;
   email: string;
+  role?: 'student' | 'admin';
+  is_active?: boolean;
+  last_login?: string;
+  created_at?: string;
   avatar_url?: string;
   learning_goal: string;
   preferred_learning_style: 'visual' | 'reading' | 'practical' | 'auditory';

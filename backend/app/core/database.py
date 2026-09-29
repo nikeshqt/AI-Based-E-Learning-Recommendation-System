@@ -37,7 +37,34 @@ async def get_db():
             await session.close()
 
 
+def _sync_schema_updates(sync_conn):
+    Base.metadata.create_all(sync_conn)
+    from sqlalchemy import text
+    # Check for sqlite pragma support to ensure backwards-compatible schema sync
+    try:
+        rows = sync_conn.execute(text("PRAGMA table_info(users)")).fetchall()
+        user_cols = {r[1] for r in rows}
+        if user_cols:
+            if "role" not in user_cols:
+                sync_conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'student' NOT NULL"))
+            if "is_active" not in user_cols:
+                sync_conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1 NOT NULL"))
+            if "last_login" not in user_cols:
+                sync_conn.execute(text("ALTER TABLE users ADD COLUMN last_login TIMESTAMP"))
+    except Exception:
+        pass
+
+    try:
+        rows = sync_conn.execute(text("PRAGMA table_info(courses)")).fetchall()
+        course_cols = {r[1] for r in rows}
+        if course_cols:
+            if "is_active" not in course_cols:
+                sync_conn.execute(text("ALTER TABLE courses ADD COLUMN is_active BOOLEAN DEFAULT 1 NOT NULL"))
+    except Exception:
+        pass
+
+
 async def init_db():
-    """Create database tables if they do not exist on startup."""
+    """Create database tables and sync schema if they do not exist on startup."""
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_sync_schema_updates)

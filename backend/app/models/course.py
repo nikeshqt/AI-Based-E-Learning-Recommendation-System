@@ -32,6 +32,7 @@ class CourseModel(Base):
     duration_hours = Column(Float, nullable=False)
     rating = Column(Float, default=5.0)
     enrolled_count = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     category_rel = relationship("CourseCategoryModel", back_populates="courses")

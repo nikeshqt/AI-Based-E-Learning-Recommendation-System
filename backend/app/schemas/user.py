@@ -25,6 +25,10 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     user_id: str
+    role: str = "student"
+    is_active: bool = True
+    last_login: Optional[datetime] = None
+    created_at: Optional[datetime] = None
     skills: List[SkillMasterySchema] = []
     weekly_goal_hours: int = 5
     completed_hours: float = 0.0

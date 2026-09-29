@@ -12,6 +12,7 @@ from app.models.learning import EnrollmentModel, ProgressModel, AssessmentModel,
 from app.models.assessment import AssessmentQuestionModel, AssessmentAttemptModel, AssessmentAnswerModel
 from app.models.recommendation import RecommendationModel, LearningPathModel, LearningPathItemModel
 from app.models.interaction import AnalyticsEventModel
+from app.models.admin_log import AdminActivityLogModel
 
 __all__ = [
     "Base",
@@ -36,4 +37,5 @@ __all__ = [
     "LearningPathModel",
     "LearningPathItemModel",
     "AnalyticsEventModel",
+    "AdminActivityLogModel",
 ]

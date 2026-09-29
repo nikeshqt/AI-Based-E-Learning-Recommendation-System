@@ -8,6 +8,7 @@ from app.models.user import UserModel, ProfileModel
 from app.models.skill import SkillModel, UserSkillModel
 from app.schemas.user import UserCreate, UserResponse, SkillMasterySchema
 from datetime import datetime, timezone
+from fastapi import HTTPException, status
 
 
 class UserService:
@@ -23,6 +24,8 @@ class UserService:
             "learning_goal": "Data Science & AI Engineering",
             "preferred_learning_style": "visual",
             "skill_level": "intermediate",
+            "role": "student",
+            "is_active": True,
             "weekly_goal_hours": 5,
             "completed_hours": 4.2,
             "streak_days": 12,
@@ -43,8 +46,16 @@ class UserService:
                 },
             ],
         }
+        self._demo_user2 = {
+            **self._demo_dict,
+            "user_id": "usr_demo",
+            "email": "demo@ai-learning.io",
+            "full_name": "Demo Student",
+            "learning_goal": "Cybersecurity Analyst",
+        }
         self._memory_users: Dict[str, Dict[str, Any]] = {
-            "alex.morgan@ai-learning.io": self._demo_dict
+            "alex.morgan@ai-learning.io": self._demo_dict,
+            "demo@ai-learning.io": self._demo_user2,
         }
 
     async def get_by_email(self, email: str) -> Optional[Dict[str, Any]]:
@@ -61,6 +72,10 @@ class UserService:
                         "email": user_obj.email,
                         "full_name": user_obj.full_name,
                         "hashed_password": user_obj.hashed_password,
+                        "role": getattr(user_obj, "role", "student"),
+                        "is_active": getattr(user_obj, "is_active", True),
+                        "last_login": user_obj.last_login,
+                        "created_at": user_obj.created_at,
                         "learning_goal": user_obj.profile.learning_goal if user_obj.profile else "General AI",
                     }
             except Exception:
@@ -94,6 +109,10 @@ class UserService:
                         user_id=user_obj.user_id,
                         email=user_obj.email,
                         full_name=user_obj.full_name,
+                        role=getattr(user_obj, "role", "student"),
+                        is_active=getattr(user_obj, "is_active", True),
+                        last_login=user_obj.last_login,
+                        created_at=user_obj.created_at,
                         learning_goal=prof.learning_goal if prof else "General AI",
                         preferred_learning_style=prof.preferred_learning_style if prof else "visual",
                         skill_level=prof.skill_level if prof else "beginner",
@@ -111,7 +130,7 @@ class UserService:
                 return UserResponse(**u)
         return None
 
-    async def create_user(self, user_in: UserCreate) -> UserResponse:
+    async def create_user(self, user_in: UserCreate, role: str = "student") -> UserResponse:
         """Register a new user account with persistent profile."""
         existing = await self.get_by_email(user_in.email)
         if existing:
@@ -129,6 +148,8 @@ class UserService:
                         email=email_clean,
                         full_name=user_in.full_name,
                         hashed_password=hashed_pw,
+                        role=role,
+                        is_active=True,
                     )
                     profile_obj = ProfileModel(
                         profile_id=f"prof_{uuid.uuid4().hex[:8]}",
@@ -148,6 +169,8 @@ class UserService:
             "email": email_clean,
             "full_name": user_in.full_name,
             "hashed_password": hashed_pw,
+            "role": role,
+            "is_active": True,
             "learning_goal": user_in.learning_goal,
             "preferred_learning_style": user_in.preferred_learning_style,
             "skill_level": user_in.skill_level,
@@ -160,13 +183,73 @@ class UserService:
         return UserResponse(**user_dict)
 
     async def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
-        """Validate credentials for user login."""
+        """Validate credentials for user login and update last_login timestamp."""
         user = await self.get_by_email(email)
         if not user:
             return None
         if not verify_password(password, user["hashed_password"]):
             return None
+        if not user.get("is_active", True):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is deactivated. Please contact an administrator.",
+            )
+
+        now_utc = datetime.now(timezone.utc)
+        async with AsyncSessionLocal() as session:
+            try:
+                stmt = select(UserModel).where(UserModel.user_id == user["user_id"])
+                res = await session.execute(stmt)
+                u_obj = res.scalar_one_or_none()
+                if u_obj:
+                    u_obj.last_login = now_utc
+                    await session.commit()
+            except Exception:
+                pass
+
+        user["last_login"] = now_utc
+
+        # Record audit log if admin logs in
+        if user.get("role") == "admin":
+            try:
+                from app.models.admin_log import AdminActivityLogModel
+                async with AsyncSessionLocal() as session:
+                    log_entry = AdminActivityLogModel(
+                        log_id=f"log_{uuid.uuid4().hex[:10]}",
+                        admin_id=user["user_id"],
+                        action="ADMIN_LOGIN",
+                        target_type="auth",
+                        target_id=user["user_id"],
+                        details=f"Admin {user.get('full_name')} logged in successfully",
+                    )
+                    session.add(log_entry)
+                    await session.commit()
+            except Exception as log_err:
+                print(f"[UserService] Warning logging admin login: {log_err}")
+
         return user
+
+    async def update_user_status(self, user_id: str, is_active: bool) -> bool:
+        """Activate or deactivate student account."""
+        async with AsyncSessionLocal() as session:
+            try:
+                stmt = select(UserModel).where(UserModel.user_id == user_id)
+                res = await session.execute(stmt)
+                user_obj = res.scalar_one_or_none()
+                if not user_obj:
+                    return False
+                user_obj.is_active = is_active
+                await session.commit()
+
+                # Also update in memory if present
+                for u in self._memory_users.values():
+                    if u.get("user_id") == user_id:
+                        u["is_active"] = is_active
+                return True
+            except Exception as err:
+                await session.rollback()
+                print(f"[UserService] update_user_status error: {err}")
+                return False
 
     async def update_learning_goal(self, user_id: str, new_goal: str) -> Optional[UserResponse]:
         """Update user target learning goal."""

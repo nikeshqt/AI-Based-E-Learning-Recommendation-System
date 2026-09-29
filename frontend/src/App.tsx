@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { Footer } from './components/common/Footer';
@@ -18,11 +19,40 @@ import { CourseDetailModal } from './components/courses/CourseDetailModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import type { Course } from './types/course';
 
+// Admin imports
+import { AdminHeader } from './components/admin/AdminHeader';
+import { AdminSidebar, type AdminTab } from './components/admin/AdminSidebar';
+import { AccessDenied } from './components/admin/AccessDenied';
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { AdminStudentsPage } from './pages/admin/AdminStudentsPage';
+import { AdminStudentDetailPage } from './pages/admin/AdminStudentDetailPage';
+import { AdminCoursesPage } from './pages/admin/AdminCoursesPage';
+import { AdminProgressPage } from './pages/admin/AdminProgressPage';
+import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
+import { AdminActivityPage } from './pages/admin/AdminActivityPage';
+import { ShieldCheck } from 'lucide-react';
+
 function AppContent() {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Student active tab state
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [activeCourseId] = useState<string>('crs_sec_04');
+
+  // Automatic redirect after admin login
+  useEffect(() => {
+    if (
+      user &&
+      user.role === 'admin' &&
+      location.pathname === '/' &&
+      !location.search.includes('preview=true')
+    ) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, location.pathname, location.search, navigate]);
 
   const sampleModalCourse: Course = {
     course_id: 'crs_sec_03',
@@ -63,6 +93,112 @@ function AppContent() {
     return <AuthPage />;
   }
 
+  // Check if current route is an Admin route
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  // If a student tries to navigate to /admin, show Access Denied
+  if (isAdminRoute && user?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto font-sans">
+        <Header activeTab="dashboard" />
+        <AccessDenied onReturnToDashboard={() => navigate('/')} />
+        <Footer />
+      </div>
+    );
+  }
+
+  // If user is Admin and is on an admin route
+  if (isAdminRoute && user?.role === 'admin') {
+    // Determine active admin tab and subroute
+    let currentAdminTab: AdminTab = 'dashboard';
+    let selectedStudentId: string | null = null;
+
+    if (location.pathname === '/admin' || location.pathname === '/admin/dashboard') {
+      currentAdminTab = 'dashboard';
+    } else if (location.pathname.startsWith('/admin/students/')) {
+      currentAdminTab = 'students';
+      selectedStudentId = location.pathname.replace('/admin/students/', '');
+    } else if (location.pathname === '/admin/students') {
+      currentAdminTab = 'students';
+    } else if (location.pathname === '/admin/courses') {
+      currentAdminTab = 'courses';
+    } else if (location.pathname === '/admin/progress') {
+      currentAdminTab = 'progress';
+    } else if (location.pathname === '/admin/analytics') {
+      currentAdminTab = 'analytics';
+    } else if (location.pathname === '/admin/activity') {
+      currentAdminTab = 'activity';
+    } else if (location.pathname === '/admin/settings') {
+      currentAdminTab = 'settings';
+    }
+
+    const renderAdminContent = () => {
+      if (selectedStudentId) {
+        return (
+          <AdminStudentDetailPage
+            studentId={selectedStudentId}
+            onBack={() => navigate('/admin/students')}
+          />
+        );
+      }
+
+      switch (currentAdminTab) {
+        case 'dashboard':
+          return (
+            <AdminDashboardPage
+              onNavigateToTab={(tab) => navigate(`/admin/${tab}`)}
+            />
+          );
+        case 'students':
+          return (
+            <AdminStudentsPage
+              onSelectStudent={(id) => navigate(`/admin/students/${id}`)}
+            />
+          );
+        case 'courses':
+          return <AdminCoursesPage />;
+        case 'progress':
+          return <AdminProgressPage />;
+        case 'analytics':
+          return <AdminAnalyticsPage />;
+        case 'activity':
+          return <AdminActivityPage />;
+        case 'settings':
+          return <SettingsPage />;
+        default:
+          return (
+            <AdminDashboardPage
+              onNavigateToTab={(tab) => navigate(`/admin/${tab}`)}
+            />
+          );
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto font-sans">
+        <AdminHeader onSwitchToStudentView={() => navigate('/?preview=true')} />
+        <div className="flex-1 flex gap-6">
+          <AdminSidebar
+            activeTab={currentAdminTab}
+            setActiveTab={(tab) => {
+              if (tab === 'dashboard') navigate('/admin');
+              else navigate(`/admin/${tab}`);
+            }}
+            onSelectStudentId={(id) => {
+              if (id) navigate(`/admin/students/${id}`);
+              else navigate('/admin/students');
+            }}
+          />
+          <main className="flex-1 overflow-y-auto min-w-0">
+            {renderAdminContent()}
+          </main>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Existing Student Views
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -114,6 +250,22 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto font-sans">
+      {/* If admin is previewing student view, show banner to return to admin console */}
+      {user?.role === 'admin' && (
+        <div className="mb-4 bg-indigo-900 text-white px-4 py-2.5 rounded-xl text-xs flex items-center justify-between shadow-xs">
+          <span className="font-medium flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-indigo-300" />
+            You are currently previewing the Student Interface as an Administrator.
+          </span>
+          <button
+            onClick={() => navigate('/admin')}
+            className="px-3 py-1 bg-white text-indigo-900 font-semibold rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer"
+          >
+            Return to Admin Console
+          </button>
+        </div>
+      )}
+
       <Header activeTab={activeTab} />
       <div className="flex-1 flex gap-6">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />

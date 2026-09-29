@@ -15,6 +15,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: str
+    role: str = "student"
 
 
 router = APIRouter()
@@ -29,8 +30,9 @@ async def login_json(credentials: LoginJSONRequest):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
-    token = create_access_token(subject=user["user_id"])
-    return TokenResponse(access_token=token, user_id=user["user_id"])
+    role = user.get("role", "student")
+    token = create_access_token(subject=user["user_id"], role=role)
+    return TokenResponse(access_token=token, user_id=user["user_id"], role=role)
 
 
 @router.post("/login/oauth", response_model=TokenResponse)
@@ -42,8 +44,9 @@ async def login_oauth(form_data: OAuth2PasswordRequestForm = Depends()):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
-    token = create_access_token(subject=user["user_id"])
-    return TokenResponse(access_token=token, user_id=user["user_id"])
+    role = user.get("role", "student")
+    token = create_access_token(subject=user["user_id"], role=role)
+    return TokenResponse(access_token=token, user_id=user["user_id"], role=role)
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

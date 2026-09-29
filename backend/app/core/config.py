@@ -34,7 +34,12 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = "supersecretkey_change_me_in_prod"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    # Initial Admin Seed Configuration (override via environment variables in production)
+    DEFAULT_ADMIN_EMAIL: str = "admin@elearning.io"
+    DEFAULT_ADMIN_PASSWORD: str = "Admin@12345"
+    DEFAULT_ADMIN_NAME: str = "System Administrator"
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 

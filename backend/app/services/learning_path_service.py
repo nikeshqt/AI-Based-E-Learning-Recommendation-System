@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import AsyncSessionLocal
 from app.models.recommendation import LearningPathModel, LearningPathItemModel
+from app.models.course import CourseModel, CourseSkillModel
 from app.services.user_service import user_service
 from app.services.catalog_service import catalog_service
 from app.services.skill_gap_service import skill_gap_service
@@ -355,7 +356,12 @@ class LearningPathService:
         async with AsyncSessionLocal() as session:
             stmt = (
                 select(LearningPathModel)
-                .options(selectinload(LearningPathModel.items).selectinload(LearningPathItemModel.course))
+                .options(
+                    selectinload(LearningPathModel.items)
+                    .selectinload(LearningPathItemModel.course)
+                    .selectinload(CourseModel.course_skills)
+                    .selectinload(CourseSkillModel.skill)
+                )
                 .where(
                     LearningPathModel.user_id == user_id,
                     LearningPathModel.is_active == True,
@@ -377,7 +383,12 @@ class LearningPathService:
         async with AsyncSessionLocal() as session:
             stmt = (
                 select(LearningPathModel)
-                .options(selectinload(LearningPathModel.items).selectinload(LearningPathItemModel.course))
+                .options(
+                    selectinload(LearningPathModel.items)
+                    .selectinload(LearningPathItemModel.course)
+                    .selectinload(CourseModel.course_skills)
+                    .selectinload(CourseSkillModel.skill)
+                )
                 .where(LearningPathModel.path_id == path_id)
             )
             res = await session.execute(stmt)
@@ -401,7 +412,9 @@ class LearningPathService:
 
         for item in sorted_items:
             course = item.course
-            prereqs = course.course_skills if course and hasattr(course, "course_skills") else []
+            prereqs = []
+            if course and "course_skills" in course.__dict__:
+                prereqs = course.__dict__.get("course_skills") or []
             skills_t = [cs.skill.skill_name for cs in prereqs if cs.skill and not cs.is_prerequisite] if prereqs else []
             prereq_s = [cs.skill.skill_name for cs in prereqs if cs.skill and cs.is_prerequisite] if prereqs else []
 
