@@ -123,10 +123,6 @@ cd backend
 python -m scripts.seed_admin
 ```
 
-**Default Admin Credentials:**
-- **Email:** `admin@elearning.io`
-- **Password:** `Admin@12345`
-- **Role:** `admin`
 
 Passwords are securely hashed with `bcrypt`/`passlib`. Credentials and password hashes are never exposed in responses or audit logs.
 
